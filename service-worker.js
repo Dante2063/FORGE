@@ -1,10 +1,11 @@
 // Simple app-shell cache for FORGE (GitHub Pages, subpath /FORGE/)
-const CACHE = "forge-v3.1.0";
+const CACHE = "forge-v3.1.1";   // <— neue Version, zwingt Update
 const BASE = "/FORGE/";
 const ASSETS = [
   BASE,
   BASE + "index.html",
-  BASE + "manifest.webmanifest"
+  // ⚠️ Manifest NICHT mehr cachen!
+  // BASE + "manifest.webmanifest"
 ];
 
 self.addEventListener("install", (e) => {
@@ -19,13 +20,24 @@ self.addEventListener("activate", (e) => {
   );
 });
 
+// Netzwerk-Strategie:
 self.addEventListener("fetch", (e) => {
   const req = e.request;
-  // network-first for JSON (OpenFoodFacts), cache-first for static
+  const url = new URL(req.url);
+
+  // 1) Manifest IMMER aus dem Netz holen (keine Cache-Version!)
+  if (url.pathname.endsWith("manifest.webmanifest")) {
+    e.respondWith(fetch(req));
+    return;
+  }
+
+  // 2) JSON (OpenFoodFacts) network-first
   const isJSON = req.headers.get("accept")?.includes("application/json");
   if (isJSON) {
     e.respondWith(fetch(req).catch(() => caches.match(req)));
-  } else {
-    e.respondWith(caches.match(req).then((r) => r || fetch(req)));
+    return;
   }
+
+  // 3) Standard: cache-first für statische Assets
+  e.respondWith(caches.match(req).then((r) => r || fetch(req)));
 });
