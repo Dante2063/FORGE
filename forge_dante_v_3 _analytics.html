@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FORGE v3.1 — Dante</title>
+  <style>
+    :root{--bg:#0b0f14;--panel:#10161d;--card:#121a23;--muted:#a7b3c2;--text:#e6edf3;--accent:#FF4C83;--accent-2:#11b981;--ring:rgba(255,76,131,.35);--radius:16px}
+    *{box-sizing:border-box}html,body{height:100%}body{margin:0;background:linear-gradient(180deg,#0b0f14,#0e141b 60%,#0b0f14);color:var(--text);font:14px/1.55 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans","Helvetica Neue",Arial}
+    h1,h2,h3{margin:0 0 .35rem}.container{max-width:1100px;margin:0 auto;padding:20px}
+    .header{position:sticky;top:0;z-index:30;background:rgba(16,22,29,.85);backdrop-filter:saturate(180%) blur(6px);border-bottom:1px solid #1e2a36}
+    .row{display:grid;grid-template-columns:260px 1fr;gap:18px}@media (max-width:900px){.row{grid-template-columns:1fr}}
+    .logo{display:flex;align-items:center;gap:12px}.logo-badge{width:40px;height:40px;border-radius:12px;background:conic-gradient(from 160deg,#0e141b,#22303f 55%,var(--accent) 56%,#f28bb1 65%,var(--accent-2) 66%,#1b2a36);box-shadow:inset 0 0 30px rgba(255,255,255,.08),0 6px 24px rgba(0,0,0,.45)}.title{font-weight:800;letter-spacing:.4px}.subtitle{color:var(--muted);font-size:12px;margin-top:-6px}
+    .nav{display:flex;flex-direction:column;gap:10px}.tab-btn{appearance:none;border:1px solid #223040;background:#0e141b;color:var(--text);padding:12px 14px;border-radius:12px;text-align:left;cursor:pointer;transition:.2s;box-shadow:0 1px 0 #000 inset,0 0 0 0 rgba(255,76,131,0)}.tab-btn:hover{transform:translateY(-1px);border-color:#33475c}.tab-btn.active{background:linear-gradient(180deg,#15202b,#0e141b);border-color:#3d536b;box-shadow:0 0 0 2px var(--ring)}
+    .panel{background:var(--panel);border:1px solid #1f2b38;border-radius:var(--radius);box-shadow:0 10px 24px rgba(0,0,0,.35)}.card{background:var(--card);border:1px solid #1f2b38;border-radius:14px;padding:16px;/* FIX: Charts sauber einrahmen */overflow:hidden}
+    .grid{display:grid;gap:14px}.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}@media (max-width:900px){.grid-3,.grid-2{grid-template-columns:1fr}}
+    .field{display:flex;flex-direction:column;gap:6px}label{font-size:12px;color:var(--muted)}input[type=text],input[type=number],textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #243345;background:#0c131a;color:var(--text);outline:none}input:focus,textarea:focus{border-color:#3c5570;box-shadow:0 0 0 2px rgba(60,85,112,.35)}textarea{min-height:110px;resize:vertical}
+    .btn{appearance:none;border:none;border-radius:12px;padding:10px 14px;cursor:pointer;color:#0b0f14;background:linear-gradient(180deg,#ffd1e1,#FF4C83);font-weight:700;letter-spacing:.2px;box-shadow:0 10px 20px rgba(255,76,131,.25)}.btn.secondary{background:linear-gradient(180deg,#b8ffe6,#11b981);color:#072015}.btn.ghost{background:#0e141b;color:var(--text);border:1px solid #263548}
+    .meter{height:12px;background:#0c131a;border-radius:999px;border:1px solid #223040;overflow:hidden}.bar{height:100%;background:linear-gradient(90deg,var(--accent-2),var(--accent));width:0%}
+    .list{display:flex;flex-direction:column;gap:8px}.rowline{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#0e161f;border:1px solid #223040;border-radius:12px}.badge{font-size:11px;background:#d3ffe9;border-radius:999px;padding:2px 8px;color:#0a2b1b}.muted{color:var(--muted)}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}.hidden{display:none}
+    /* FIX: Canvas sauber in der Karte halten */
+    canvas{display:block;width:100% !important;height:180px !important;border-radius:10px;background:#0c131a}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;">
+      <div class="logo"><div class="logo-badge"></div><div><div class="title">FORGE <span class="muted">//</span> Dante <span class="badge" style="margin-left:6px;background:#ffd6e7;color:#3a0015">V3.1</span></div><div class="subtitle">Ava‑Edition — persönliches Disziplin‑OS</div></div></div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="badge">Heute <span id="todayLabel" class="mono"></span></span>
+        <button id="exportBtn" class="btn ghost">Export</button>
+        <label class="btn ghost" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">Import<input id="importInput" type="file" accept="application/json" style="display:none"></label>
+        <label class="btn ghost" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">Merge<input id="mergeInput" type="file" accept="application/json" style="display:none"></label>
+        <button id="newDayBtn" class="btn ghost">Neuer Tag</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container" style="margin-top:18px">
+    <div class="row">
+      <nav class="panel" style="padding:14px">
+        <div class="nav">
+          <button class="tab-btn active" data-tab="dash">Dashboard</button>
+          <button class="tab-btn" data-tab="meals">Ernährung</button>
+          <button class="tab-btn" data-tab="hydration">Hydration</button>
+          <button class="tab-btn" data-tab="workout">Training</button>
+          <button class="tab-btn" data-tab="work">Work‑Tools</button>
+          <button class="tab-btn" data-tab="photo">Foto‑Fokus</button>
+          <button class="tab-btn" data-tab="mindset">Mindset</button>
+          <button class="tab-btn" data-tab="analytics">Analytics</button>
+          <button class="tab-btn" data-tab="settings">Ziele & Settings</button>
+        </div>
+      </nav>
+
+      <section class="panel" style="padding:16px">
+        <!-- DASH -->
+        <div id="tab-dash">
+          <div class="grid grid-3">
+            <div class="card"><h3>Kalorien</h3><div class="meter"><div id="calBar" class="bar"></div></div><div class="muted" style="margin-top:6px"><span id="calTotal" class="mono">0</span> / <span id="calTarget" class="mono">0</span> kcal</div></div>
+            <div class="card"><h3>Protein</h3><div class="meter"><div id="proBar" class="bar"></div></div><div class="muted" style="margin-top:6px"><span id="proTotal" class="mono">0</span> / <span id="proTarget" class="mono">0</span> g</div></div>
+            <div class="card"><h3>Wasser</h3><div class="meter"><div id="waterBar" class="bar"></div></div><div class="muted" style="margin-top:6px"><span id="waterTotal" class="mono">0</span> / <span id="waterTarget" class="mono">0</span> ml</div></div>
+          </div>
+          <div class="grid grid-3" style="margin-top:14px">
+            <div class="card"><h3>Heute gegessen</h3><div id="todayMeals" class="list"></div></div>
+            <div class="card"><h3>Getränke</h3><div id="todayDrinks" class="list"></div></div>
+            <div class="card"><h3>Training</h3><div id="todayWorkouts" class="list"></div></div>
+          </div>
+          <div class="card" style="margin-top:14px"><h3>Punkte heute</h3><div class="muted" style="margin:6px 0 10px">Treffer: Kalorien ±5%, Protein ≥ Ziel, Wasser ≥ Ziel, ≥1 Training.</div><div style="font-size:28px;font-weight:800"><span id="pointsToday">0</span> <span class="muted" style="font-size:13px">/100</span></div></div>
+        </div>
+
+        <!-- MEALS -->
+        <div id="tab-meals" class="hidden">
+          <div class="card">
+            <h3>Mahlzeit hinzufügen</h3>
+            <div class="grid grid-3" style="margin-top:10px">
+              <div class="field"><label>Bezeichnung</label><input id="meal-name" type="text" placeholder="z.B. Skyr, Brötchen, Lachs…"></div>
+              <div class="grid grid-3">
+                <div class="field"><label>Gramm</label><input id="meal-grams" type="number" placeholder="200"></div>
+                <div class="field"><label>kcal</label><input id="meal-kcal" type="number" placeholder="kcal"></div>
+                <div class="field"><label>Protein g</label><input id="meal-pro" type="number"></div>
+              </div>
+              <div class="grid grid-3">
+                <div class="field"><label>Fett g</label><input id="meal-fat" type="number"></div>
+                <div class="field"><label>KH g</label><input id="meal-carbs" type="number"></div>
+                <div class="field"><label>&nbsp;</label><button id="nutriFind" class="btn secondary">Ermitteln</button></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:10px"><button id="addMealBtn" class="btn">Hinzufügen</button><span class="muted">„Ermitteln“ nutzt <b>OpenFoodFacts</b> (100‑g‑Werte → auf Gramm skaliert).</span></div>
+          </div>
+          <div class="card" style="margin-top:12px"><h3>Schnell hinzufügen</h3>
+            <div class="grid grid-2" style="margin-top:8px">
+              <button class="btn secondary quick" data-meal='{"name":"Skyr 200g","kcal":120,"pro":20,"fat":0,"carbs":6}'>Skyr 200g</button>
+              <button class="btn secondary quick" data-meal='{"name":"Proteinshake 250ml","kcal":200,"pro":28,"fat":4,"carbs":7}'>Proteinshake 250ml</button>
+              <button class="btn secondary quick" data-meal='{"name":"Poke‑Bowl 410g","kcal":730,"pro":35,"fat":40,"carbs":58}'>Poke‑Bowl 410g</button>
+              <button class="btn secondary quick" data-meal='{"name":"Dönerfleisch 200g","kcal":380,"pro":38,"fat":24,"carbs":4}'>Dönerfleisch 200g</button>
+              <button class="btn secondary quick" data-meal='{"name":"Eier 2 Stk","kcal":150,"pro":13,"fat":10,"carbs":1}'>Eier 2 Stk</button>
+            </div>
+          </div>
+          <div class="card" style="margin-top:12px"><h3>Heute eingetragen</h3><div id="mealList" class="list"></div></div>
+        </div>
+
+        <!-- HYDRATION -->
+        <div id="tab-hydration" class="hidden">
+          <div class="card"><h3>Getränk hinzufügen</h3>
+            <div class="grid grid-3" style="margin-top:10px">
+              <div class="field"><label>Name</label><input id="drink-name" type="text" placeholder="z.B. Grüntee 300ml"></div>
+              <div class="field"><label>ml</label><input id="drink-ml" type="number" placeholder="300"></div>
+              <div class="field"><label>kcal (optional)</label><input id="drink-kcal" type="number" placeholder="0"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:10px"><button id="addDrinkBtn" class="btn">Hinzufügen</button><span class="muted">Blacklist aktiv: Kaffee, Kombucha.</span></div>
+          </div>
+          <div class="card" style="margin-top:12px"><h3>Schnell hinzufügen</h3>
+            <div class="grid grid-2" style="margin-top:8px">
+              <button class="btn secondary qd" data-drink='{"name":"Wasser 300ml","ml":300,"kcal":0}'>Wasser 300ml</button>
+              <button class="btn secondary qd" data-drink='{"name":"Grüntee 300ml","ml":300,"kcal":1}'>Grüntee 300ml</button>
+              <button class="btn secondary qd" data-drink='{"name":"Weißer Tee 300ml","ml":300,"kcal":1}'>Weißer Tee 300ml</button>
+              <button class="btn secondary qd" data-drink='{"name":"Gelber Tee 300ml","ml":300,"kcal":1}'>Gelber Tee 300ml</button>
+              <button class="btn secondary qd" data-drink='{"name":"Guayusa 300ml","ml":300,"kcal":1}'>Guayusa 300ml</button>
+              <button class="btn secondary qd" data-drink='{"name":"Meßmer Cold Tea 500ml","ml":500,"kcal":5}'>Cold Tea 500ml</button>
+              <button class="btn secondary qd" data-drink='{"name":"Pepsi Cherry Zero 330ml","ml":330,"kcal":0}'>Pepsi Cherry Zero 330ml</button>
+            </div>
+          </div>
+          <div class="card" style="margin-top:12px"><h3>Heute getrunken</h3><div id="drinkList" class="list"></div></div>
+        </div>
+
+        <!-- WORKOUT -->
+        <div id="tab-workout" class="hidden">
+          <div class="card"><h3>Training loggen</h3>
+            <div class="grid grid-3" style="margin-top:10px">
+              <div class="field"><label>Übung</label><input id="wo-name" type="text" placeholder="Langhantel"></div>
+              <div class="grid grid-3">
+                <div class="field"><label>kg</label><input id="wo-weight" type="number"></div>
+                <div class="field"><label>Sätze</label><input id="wo-sets" type="number"></div>
+                <div class="field"><label>Wdh.</label><input id="wo-reps" type="number"></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:10px"><input id="wo-notes" type="text" placeholder="Notizen (optional)" style="flex:1"><button id="addWoBtn" class="btn">Loggen</button></div>
+          </div>
+          <div class="card" style="margin-top:12px"><h3>Schnellvorlagen</h3>
+            <div class="grid grid-2" style="margin-top:8px">
+              <button class="btn secondary qw" data-wo='{"name":"Langhantel","weight":15,"sets":3,"reps":15}'>Langhantel 15 kg · 3×15</button>
+              <button class="btn secondary qw" data-wo='{"name":"Kurzhantel (je)","weight":14,"sets":2,"reps":10}'>Kurzhantel 14 kg · 2×10</button>
+              <button class="btn secondary qw" data-wo='{"name":"Trizeps einarmig","weight":6,"sets":2,"reps":10}'>Trizeps 6 kg · 2×10</button>
+            </div>
+          </div>
+          <div class="card" style="margin-top:12px"><h3>Heutiges Training</h3><div id="woList" class="list"></div></div>
+        </div>
+
+        <!-- WORK -->
+        <div id="tab-work" class="hidden">
+          <div class="card"><h3>First‑Response‑Rechner</h3>
+            <div class="grid grid-3" style="margin-top:10px">
+              <div class="field"><label>Tickets gesamt</label><input id="fr-total" type="number" placeholder="120"></div>
+              <div class="field"><label>In SLA</label><input id="fr-in" type="number" placeholder="108"></div>
+              <div class="field"><label>Ziel %</label><input id="fr-target" type="number" placeholder="90"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:10px"><button id="fr-calc" class="btn">Berechnen</button><div id="fr-result" class="badge" style="display:none"></div></div>
+          </div>
+          <div class="card" style="margin-top:12px"><h3>Mini‑Notizen</h3><textarea id="jobNotes" placeholder="Stichworte, Eskalationen, Ideen…"></textarea><div class="muted" style="margin-top:6px">Speichert automatisch lokal.</div></div>
+        </div>
+
+        <!-- PHOTO -->
+        <div id="tab-photo" class="hidden">
+          <div class="card"><h3>Foto‑Fokus & Spots</h3>
+            <div class="grid grid-3" style="margin-top:10px">
+              <div class="field"><label>Ort/Motiv</label><input id="spot-name" type="text" placeholder="Waldrand‑Bank"></div>
+              <div class="field"><label>Notiz</label><input id="spot-notes" type="text" placeholder="Licht, Zeit, Linse…"></div>
+              <div class="field"><label>&nbsp;</label><button id="addSpotBtn" class="btn">Hinzufügen</button></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:12px"><h3>Liste</h3><div id="spotList" class="list"></div></div>
+        </div>
+
+        <!-- MINDSET -->
+        <div id="tab-mindset" class="hidden">
+          <div class="card"><h3>Tägliche Konfrontationsfrage</h3><div id="question" class="muted" style="margin:8px 0"></div><textarea id="answer" placeholder="Deine Antwort. Ohne Ausreden."></textarea><div class="muted" style="margin-top:6px">Kommentar Deiner besseren Version erscheint morgen.</div></div>
+          <div class="card" style="margin-top:12px"><h3>Chronik</h3><div id="mindsetList" class="list"></div></div>
+        </div>
+
+        <!-- ANALYTICS -->
+        <div id="tab-analytics" class="hidden">
+          <div class="card"><h3>Wochen‑ & Monatsverlauf</h3>
+            <div class="muted" style="margin:6px 0 10px">Zeitraum wechseln, um Trends zu sehen. Werte sind Tages‑Summen.</div>
+            <div style="display:flex;gap:10px;margin-bottom:10px">
+              <button class="btn ghost" id="range7">Letzte 7 Tage</button>
+              <button class="btn ghost" id="range30">Letzte 30 Tage</button>
+              <button class="btn ghost" id="range90">Letzte 90 Tage</button>
+            </div>
+            <div class="grid grid-3">
+              <div class="card"><h3 style="margin-bottom:6px">Kalorien</h3><canvas id="chartCal" width="320" height="180"></canvas></div>
+              <div class="card"><h3 style="margin-bottom:6px">Protein (g)</h3><canvas id="chartPro" width="320" height="180"></canvas></div>
+              <div class="card"><h3 style="margin-bottom:6px">Wasser (ml)</h3><canvas id="chartWater" width="320" height="180"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div id="tab-settings" class="hidden">
+          <div class="grid grid-2">
+            <div class="card"><h3>Ziele</h3>
+              <div class="grid grid-3" style="margin-top:10px">
+                <div class="field"><label>Kalorienziel</label><input id="set-cal" type="number"></div>
+                <div class="field"><label>Proteinziel g</label><input id="set-pro" type="number"></div>
+                <div class="field"><label>Wasserziel ml</label><input id="set-water" type="number"></div>
+              </div>
+              <div style="margin-top:10px"><button id="saveGoals" class="btn">Speichern</button></div>
+            </div>
+            <div class="card"><h3>System</h3>
+              <div class="grid grid-3" style="margin-top:10px">
+                <div class="field"><label>Dein Name</label><input id="set-name" type="text"></div>
+                <div class="field"><label>&nbsp;</label><button id="wipeAll" class="btn ghost">Alles löschen (lokal)</button></div>
+              </div>
+              <div class="muted" style="margin-top:6px">Daten bleiben ausschließlich in Deinem Browser (localStorage). „Merge“ fügt eine exportierte Datei zu Deiner aktuellen hinzu (Tage werden zusammengeführt).</div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </div>
+    <div style="margin:18px 0" class="muted">V3.1: **Merge‑Import** & **Analytics (7/30/90 Tage)** zusätzlich zu OpenFoodFacts‑Ermitteln. Alles lokal.</div>
+  </div>
+
+  <script>
+    // ---- State ----
+    const DEFAULT={profile:{name:'Dante',calTarget:1900,proTarget:130,waterTarget:2500},days:{}};
+    const Q=['Welcher kleine Sieg heute macht morgen leichter?','Was hast Du heute NICHT gegessen und warum war das richtig?','Welche Ausrede hast Du heute getötet?','Womit hast Du Deinem zukünftigen Selbst heute geholfen?','Was machst Du morgen besser – konkret, messbar?'];
+    const BLACK=[/kaffee/i,/coffee/i,/kombucha/i];
+    const key=()=>new Date().toISOString().slice(0,10);
+    const newDay=()=>({meals:[],drinks:[],workouts:[],mindset:{q:Q[Math.floor(Math.random()*Q.length)],a:''},work:{frr:{},notes:''},photoSpots:[]});
+    let db=JSON.parse(localStorage.getItem('forge_v3_1')||'null')||JSON.parse(JSON.stringify(DEFAULT));
+    if(!db.days[key()]) db.days[key()]=newDay();
+
+    // ---- Helpers ----
+    const $=id=>document.getElementById(id);
+    const set=(id,v)=>$(id).textContent=v;
+    const save=()=>{localStorage.setItem('forge_v3_1',JSON.stringify(db));render()};
+    const num=id=>Number($(id).value||0);
+    const val=id=>($(id).value||'').trim();
+    const pct=(v,g)=>Math.min(100,Math.round((v/Math.max(g,1))*100));
+    const li=(s,idx,bag)=>`<div class='rowline'><span>${s}</span><button class='btn ghost' data-del='${bag}:${idx}'>Entfernen</button></div>`;
+
+    // ---- Totals ----
+    function totals(d){
+      const kcal=Math.round(d.meals.reduce((a,m)=>a+(+m.kcal||0),0));
+      const pro=Math.round(d.meals.reduce((a,m)=>a+(+m.pro||0),0));
+      const water=Math.round(d.drinks.reduce((a,x)=>a+(+x.ml||0),0));
+      return {kcal,pro,water,workouts:d.workouts.length}
+    }
+    function setBar(id,v,g){$(id).style.width=pct(v,g)+'%'}
+
+    // ---- Render ----
+    function render(){
+      const d=db.days[key()];
+      set('todayLabel',key());
+      set('calTarget',db.profile.calTarget); set('proTarget',db.profile.proTarget); set('waterTarget',db.profile.waterTarget);
+      const t=totals(d);
+      set('calTotal',t.kcal); set('proTotal',t.pro); set('waterTotal',t.water);
+      setBar('calBar',t.kcal,db.profile.calTarget); setBar('proBar',t.pro,db.profile.proTarget); setBar('waterBar',t.water,db.profile.waterTarget);
+      $('todayMeals').innerHTML=$('mealList').innerHTML=d.meals.map((m,i)=>li(`${m.name}${m.grams?` ${m.grams}g`:''} — ${m.kcal} kcal · P${m.pro||0}/F${m.fat||0}/K${m.carbs||0}`,i,'meals')).join('')||`<div class='muted'>— noch nichts —</div>`;
+      $('todayDrinks').innerHTML=$('drinkList').innerHTML=d.drinks.map((x,i)=>li(`${x.name} — ${x.ml} ml${x.kcal?` · ${x.kcal} kcal`:''}`,i,'drinks')).join('')||`<div class='muted'>— noch nichts —</div>`;
+      $('todayWorkouts').innerHTML=$('woList').innerHTML=d.workouts.map((w,i)=>li(`${w.name}: ${w.sets}×${w.reps} @ ${w.weight||0} kg — Volumen ${w.sets*w.reps*(w.weight||0)} kg${w.notes?` · ${w.notes}`:''}`,i,'workouts')).join('')||`<div class='muted'>— noch nichts —</div>`;
+      $('spotList').innerHTML=d.photoSpots.map((s,i)=>li(`${s.name} — ${s.notes||''}`,i,'spots')).join('')||`<div class='muted'>— leer —</div>`;
+      $('question').textContent=d.mindset.q; $('answer').value=d.mindset.a||'';
+      $('mindsetList').innerHTML=Object.entries(db.days).sort((a,b)=>a[0]<b[0]?1:-1).slice(0,14).map(([date,day])=>`<div class='rowline'><span><span class='mono'>${date}</span> — ${day.mindset.a||'—'}</span></div>`).join('');
+      $('set-cal').value=db.profile.calTarget; $('set-pro').value=db.profile.proTarget; $('set-water').value=db.profile.waterTarget; $('set-name').value=db.profile.name;
+      let p=0; const calOk=Math.abs(t.kcal-db.profile.calTarget)<=db.profile.calTarget*0.05; if(calOk)p+=30; if(t.pro>=db.profile.proTarget)p+=30; if(t.water>=db.profile.waterTarget)p+=20; if(t.workouts>0)p+=20; set('pointsToday',p);
+    }
+
+    // ---- Tabs ----
+    document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>{
+      document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      const id=b.dataset.tab;
+      ['dash','meals','hydration','workout','work','photo','mindset','analytics','settings']
+        .forEach(t=>document.getElementById('tab-'+t)?.classList.add('hidden'));
+      document.getElementById('tab-'+id)?.classList.remove('hidden');
+    }));
+
+    // ---- Meals ----
+    $('addMealBtn').onclick=()=>{
+      const d=db.days[key()];
+      const m={name:val('meal-name'),grams:num('meal-grams'),kcal:num('meal-kcal'),pro:num('meal-pro'),fat:num('meal-fat'),carbs:num('meal-carbs')};
+      if(!m.name||!m.kcal){alert('Name und kcal erforderlich (oder zuerst „Ermitteln“).');return}
+      d.meals.push(m); ['meal-name','meal-grams','meal-kcal','meal-pro','meal-fat','meal-carbs'].forEach(id=>$(id).value=''); save();
+    };
+    document.querySelectorAll('.quick').forEach(btn=>btn.addEventListener('click',()=>{const m=JSON.parse(btn.dataset.meal);db.days[key()].meals.push(m);save()}));
+
+    // ---- OpenFoodFacts Suche ----
+    $('nutriFind').onclick=async()=>{
+      const q=val('meal-name'); const grams=num('meal-grams')||100;
+      if(!q){alert('Bezeichnung angeben.');return}
+      try{
+        const url=`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=1`;
+        const r=await fetch(url); const j=await r.json();
+        if(!j.products||!j.products.length){alert('Nichts gefunden. Formuliere spezifischer (z. B. „Skyr nature 0,2%“).');return}
+        const p=j.products[0]; const n=p.nutriments||{};
+        const per100={kcal:n['energy-kcal_100g']??n['energy-kcal']??(n['energy_100g']?n['energy_100g']/4.184:NaN), pro:n['proteins_100g'], fat:n['fat_100g'], carbs:n['carbohydrates_100g']};
+        if([per100.kcal,per100.pro,per100.fat,per100.carbs].every(v=>isFinite(v))){
+          const f=grams/100; $('meal-kcal').value=Math.round(per100.kcal*f); $('meal-pro').value=+(per100.pro*f).toFixed(1); $('meal-fat').value=+(per100.fat*f).toFixed(1); $('meal-carbs').value=+(per100.carbs*f).toFixed(1);
+        } else { alert('Produkt gefunden, aber unvollständige Nährwerte. Bitte manuell eintragen.'); }
+      } catch(e){ console.error(e); alert('Netzwerkfehler bei der Abfrage.'); }
+    };
+
+    // ---- Drinks ----
+    $('addDrinkBtn').onclick=()=>{const name=val('drink-name'); if(BLACK.some(rx=>rx.test(name))){alert('Kein Kaffee. Kein Kombucha.');return} const d={name,ml:num('drink-ml'),kcal:num('drink-kcal')}; if(!d.name||!d.ml){alert('Name und ml erforderlich.');return} db.days[key()].drinks.push(d); ['drink-name','drink-ml','drink-kcal'].forEach(id=>$(id).value=''); save();};
+    document.querySelectorAll('.qd').forEach(btn=>btn.addEventListener('click',()=>{const d=JSON.parse(btn.dataset.drink);db.days[key()].drinks.push(d);save()}));
+
+    // ---- Workout ----
+    $('addWoBtn').onclick=()=>{const w={name:val('wo-name'),weight:num('wo-weight'),sets:num('wo-sets'),reps:num('wo-reps'),notes:val('wo-notes')}; if(!w.name||!w.sets||!w.reps){alert('Übung, Sätze und Wiederholungen angeben.');return} db.days[key()].workouts.push(w); ['wo-name','wo-weight','wo-sets','wo-reps','wo-notes'].forEach(id=>$(id).value=''); save();};
+    document.querySelectorAll('.qw').forEach(btn=>btn.addEventListener('click',()=>{const w=JSON.parse(btn.dataset.wo);db.days[key()].workouts.push(w);save()}));
+
+    // ---- Mindset & Work ----
+    $('answer').oninput=e=>{db.days[key()].mindset.a=e.target.value;save()};
+    $('fr-calc').onclick=()=>{const total=num('fr-total'),within=num('fr-in'),target=num('fr-target')||90; if(!total){alert('Gesamtzahl erforderlich.');return} const p=Math.round((within/total)*1000)/10; db.days[key()].work.frr={total,within,target,result:p}; const ok=p>=target; const el=$('fr-result'); el.textContent=`${p}% ${ok?'✅ Ziel erreicht':'⚠️ unter Ziel'}`; el.style.display='inline-block'; save();};
+    $('jobNotes').oninput=e=>{db.days[key()].work.notes=e.target.value;save()};
+
+    // ---- Spots ----
+    $('addSpotBtn').onclick=()=>{const name=val('spot-name'); if(!name){alert('Ort/Motiv angeben.');return} db.days[key()].photoSpots.push({name,notes:val('spot-notes')}); ['spot-name','spot-notes'].forEach(id=>$(id).value=''); save();};
+
+    // ---- Settings & storage ----
+    $('saveGoals').onclick=()=>{db.profile.calTarget=num('set-cal')||db.profile.calTarget; db.profile.proTarget=num('set-pro')||db.profile.proTarget; db.profile.waterTarget=num('set-water')||db.profile.waterTarget; db.profile.name=val('set-name')||db.profile.name; save(); alert('Gespeichert.')};
+    $('wipeAll').onclick=()=>{if(confirm('Alles lokal löschen?')){localStorage.removeItem('forge_v3_1'); db=JSON.parse(JSON.stringify(DEFAULT)); db.days[key()]=newDay(); render();}};
+
+    // ---- Export / Import / Merge ----
+    $('exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`FORGE_v3_1_${key()}.json`; a.click();};
+    $('importInput').onchange=e=>{const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=ev=>{try{db=JSON.parse(ev.target.result); save(); alert('Import ok. (ersetzen)');}catch{alert('Ungültige Datei.')}}; r.readAsText(f)};
+    $('mergeInput').onchange=e=>{const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=ev=>{try{const incoming=JSON.parse(ev.target.result); if(!incoming.days){alert('Datei enthält keine Tage.');return} const days=Object.keys(incoming.days); days.forEach(d=>{ if(!db.days[d]) db.days[d]=incoming.days[d]; else { db.days[d].meals=(db.days[d].meals||[]).concat(incoming.days[d].meals||[]); db.days[d].drinks=(db.days[d].drinks||[]).concat(incoming.days[d].drinks||[]); db.days[d].workouts=(db.days[d].workouts||[]).concat(incoming.days[d].workouts||[]); db.days[d].photoSpots=(db.days[d].photoSpots||[]).concat(incoming.days[d].photoSpots||[]); }}); save(); alert('Merge abgeschlossen.'); }catch{alert('Ungültige Datei.')}}; r.readAsText(f)};
+
+    // ---- Analytics ----
+    function series(range){ const out=[]; const today=new Date(key()); for(let i=range-1;i>=0;i--){const d=new Date(today); d.setDate(d.getDate()-i); const k=d.toISOString().slice(0,10); const day=db.days[k]; if(day){const t=totals(day); out.push({date:k, cal:t.kcal, pro:t.pro, water:t.water});} else {out.push({date:k, cal:0, pro:0, water:0});}} return out; }
+    function draw(canvasId, data, field, goal){ const c=$(canvasId); const ctx=c.getContext('2d'); const W=c.width, H=c.height; ctx.clearRect(0,0,W,H); ctx.fillStyle='#0c131a'; ctx.fillRect(0,0,W,H); ctx.strokeStyle='#223040'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(30,10); ctx.lineTo(30,H-20); ctx.lineTo(W-10,H-20); ctx.stroke(); const max=Math.max(goal||0,...data.map(d=>d[field]))||1; const sx=(W-40)/Math.max(1,data.length-1); const sy=(H-30)/max; if(goal){ ctx.strokeStyle='rgba(17,185,129,.4)'; ctx.setLineDash([4,4]); ctx.beginPath(); const gy=H-20-goal*sy; ctx.moveTo(30,gy); ctx.lineTo(W-10,gy); ctx.stroke(); ctx.setLineDash([]);} ctx.strokeStyle='#FF4C83'; ctx.lineWidth=2; ctx.beginPath(); data.forEach((d,i)=>{const x=30+i*sx; const y=H-20-d[field]*sy; if(i) ctx.lineTo(x,y); else ctx.moveTo(x,y);}); ctx.stroke(); ctx.fillStyle='#ffd6e7'; data.forEach((d,i)=>{const x=30+i*sx; const y=H-20-d[field]*sy; ctx.beginPath(); ctx.arc(x,y,2.5,0,Math.PI*2); ctx.fill();}); }
+    function renderCharts(range){ const s=series(range); draw('chartCal',s,'cal',db.profile.calTarget); draw('chartPro',s,'pro',db.profile.proTarget); draw('chartWater',s,'water',db.profile.waterTarget);} 
+    document.getElementById('range7').onclick=()=>renderCharts(7);
+    document.getElementById('range30').onclick=()=>renderCharts(30);
+    document.getElementById('range90').onclick=()=>renderCharts(90);
+
+    // ---- Delete entries + New Day ----
+    document.addEventListener('click',e=>{const d=e.target.getAttribute('data-del'); if(!d) return; const [bag,idx]=d.split(':'); const day=db.days[key()]; if(bag==='meals') day.meals.splice(+idx,1); if(bag==='drinks') day.drinks.splice(+idx,1); if(bag==='workouts') day.workouts.splice(+idx,1); if(bag==='spots') day.photoSpots.splice(+idx,1); save();});
+    $('newDayBtn').onclick=()=>{if(confirm('Neuen Tag starten? Heutige Daten bleiben gespeichert.')){db.days[key()]=db.days[key()]||newDay(); save();}};
+
+    // ---- Init ----
+    render();
+    renderCharts(7);
+  </script>
+</body>
+</html>
