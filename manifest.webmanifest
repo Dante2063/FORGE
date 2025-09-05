@@ -1,14 +1,14 @@
 {
-  "id": "/FORGE/",
+  "id": "./",
   "name": "FORGE // Dante",
   "short_name": "FORGE",
-  "start_url": "/FORGE/",
-  "scope": "/FORGE/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0b0f14",
   "theme_color": "#0b0f14",
   "icons": [
-    { "src": "/FORGE/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/FORGE/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }
